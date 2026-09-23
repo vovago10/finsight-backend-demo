@@ -1,0 +1,45 @@
+name: Backend
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      PROJECT_NAME: PFM Backend Demo
+      ENVIRONMENT: test
+      DATABASE_URL: postgresql+asyncpg://pfm_demo:pfm_demo@localhost:5432/pfm_demo
+      SECRET_KEY: test-secret-key
+      ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+      CORS_ORIGINS: '["http://localhost:5173"]'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-ansi --no-root
+
+      - name: Ruff
+        run: poetry run ruff check app tests
+
+      - name: Tests
+        run: poetry run python -m unittest discover -s tests

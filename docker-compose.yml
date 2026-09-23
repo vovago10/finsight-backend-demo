@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pfm_demo
+      POSTGRES_USER: pfm_demo
+      POSTGRES_PASSWORD: pfm_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pfm_demo -d pfm_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      PROJECT_NAME: PFM Backend Demo
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://pfm_demo:pfm_demo@postgres:5432/pfm_demo
+      SECRET_KEY: dev-secret-key-change-me
+      ACCESS_TOKEN_EXPIRE_MINUTES: 60
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000"]'
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  postgres_data:
